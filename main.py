@@ -3,6 +3,7 @@ from tkinter import filedialog
 from PIL import Image,ImageTk,ImageDraw,ImageFont
 import time
 import os
+import random
 
 def round_down(num):
 	a=round(num)
@@ -36,12 +37,14 @@ def finish():
 	Button(root, text="Next", command=lambda: new_game(root)).pack()
 	Button(root, text="Exit", command=lambda: exit(root)).pack()
 
-def change_color():
-	global colors,cc,clr,len_color
+def change_color(event):
+	global colors,cc,clr,len_color,v
 	if(min(colors)==len_color):
 		finish()
-	if(int(clr.get()) not in colors):
+	if(int(clr.get()) not in colors and v.get()!=3):
 		clr.set(min(colors))
+	if(v.get()==3):
+		clr.set(random.choice(colors))
 	cc=int(clr.get())
 
 def click(event):
@@ -61,7 +64,7 @@ def click(event):
 		img.save("blank.png")
 		picture = ImageTk.PhotoImage(original)
 		canvas.itemconfigure(myimg, image=picture)
-		change_color()
+		change_color(1)
 
 def game_start():
 	global root
@@ -72,9 +75,15 @@ def game_start():
 	clr.set(0)
 	global cc
 	cc=0
-	e=Entry(root,textvariable=clr).pack(anchor=NW)
-	Button(root,text="change", command=lambda: change_color()).pack(anchor=NW)
+	global v
+	if(v.get()!=3):
+		e=Entry(root,textvariable=clr).pack(anchor=W)
+		Button(root,text="<Enter>", command=lambda: change_color(1)).pack(anchor=W)
+	else:
+		Label(root, textvariable=clr).pack(anchor=W)
+		Label(root,text="Press <Enter> to change color").pack(anchor=W)
 
+	root.bind('<Return>', change_color)
 	global picture,original,canvas,myimg
 	canvas = Canvas(root, width = 340, height = 340)   
 	canvas.bind("<Button-1>", click)    
@@ -82,21 +91,21 @@ def game_start():
 	original = Image.open("blank.png")
 	picture = ImageTk.PhotoImage(original)
 	myimg = canvas.create_image((0,0),image=picture, anchor="nw")
+	Button(root, text="Cancel", command=lambda: new_game(root)).pack(side="top", anchor=E)
 	global start
 	start=time.perf_counter()
 	root.mainloop()
 
 
-def Open_img(i,root,v):
+def Open_img(i,root,s):
 	global hdns,size
-	hdns=v
+	hdns=s.get()
 	size=320/hdns
 	global img,start_picture
 	if(i==1):
 		name=filedialog.askopenfile(parent=root,mode='rb',title='Choose a file',filetypes=[
     		("PNG", "*.png"),
-    		("JPEG", "*.jpg"),
-    		("All files", "*")])
+    		("JPEG", "*.jpg")])
 		try:
 			img = Image.open(name)
 			start_picture=img
@@ -106,13 +115,13 @@ def Open_img(i,root,v):
 		img=Image.open("pic.png")
 		start_picture=img
 
-	result = img.resize((v,v),resample=Image.BILINEAR)
+	result = img.resize((hdns,hdns),resample=Image.BILINEAR)
 	result.save('result.png')
 	im=Image.open("result.png")
 	global pix
 	pix=[]
-	for j in range(v):
-		for i in range(v):
+	for j in range(hdns):
+		for i in range(hdns):
 			pix.append(im.getpixel((i,j)))
 	for i in range(len(pix)):
 		for j in range(len(pix)):
@@ -132,18 +141,28 @@ def Open_img(i,root,v):
 			colors.append(len(used_colors)-1)
 	global len_color
 	len_color=len(used_colors)
+	global v
+	if(v.get()!=1):
+		d={}
+		for i in range(len(used_colors)):
+			r=random.randint(0,len_color)
+			while r in d.values():
+				r=random.randint(0,len_color)
+			d.update( {i : r} )
+
+		colors=([d.get(n, n) for n in colors])
 
 	white = Image.new('RGB', (322, 322), (255, 255, 255)) 
 	draw = ImageDraw.Draw(white) 
-	for i in range(v+1):
-		draw.line((i*(320/v),0, i*(320/v),320), fill="black")
-		draw.line((0,i*(320/v),320, i*(320/v)), fill="black")
+	for i in range(hdns+1):
+		draw.line((i*(size),0, i*(size),320), fill="black")
+		draw.line((0,i*(size),320, i*(size)), fill="black")
 	c=0
-	choose=lambda v:  {8: 15, 16: 10}.get(v, 5)
-	font = ImageFont.truetype("arial.ttf", choose(v))
-	for i in range(v):
-		for j in range(v):
-			draw.text((j*(320/v)+(320/v)/3-choose(v)/3,i*(320/v)+(320/v)/3-choose(v)/3),str(colors[c]),fill="black", font=font)
+	choose=lambda hdns:  {8: 15, 16: 10}.get(hdns, 5)
+	font = ImageFont.truetype("arial.ttf", choose(hdns))
+	for i in range(hdns):
+		for j in range(hdns):
+			draw.text((j*(320/hdns)+(320/hdns)/3-choose(hdns)/3,i*(320/hdns)+(320/hdns)/3-choose(hdns)/3),str(colors[c]),fill="black", font=font)
 			c+=1
 	white.save("blank.png")
 	game_start()
@@ -151,17 +170,24 @@ def Open_img(i,root,v):
 def start_window():
 	root=Tk()
 	root.title("Color fill by Raya")
-	root.geometry("300x250")
+	root.geometry("300x350")
 	img = ImageTk.PhotoImage(Image.open("logo.png"))
 	panel = Label(root, image = img)
 	panel.pack()
+	s=IntVar()
+	s.set(8)
+	Label(root,text="Tile size:").pack(anchor=W)
+	Radiobutton(root, text="8x8", variable=s, value=8).pack(anchor=W)
+	Radiobutton(root, text="16x16", variable=s, value=16).pack(anchor=W)
+	global v
 	v = IntVar()
-	v.set(8)
-	Radiobutton(root, text="Easy", variable=v, value=8).pack(anchor=W)
-	Radiobutton(root, text="Medium", variable=v, value=16).pack(anchor=W)
-	Radiobutton(root, text="Hard", variable=v, value=24).pack(anchor=W)
-	Button(root,text="Browse file", command=lambda: Open_img(1,root,v.get())).pack()
-	Button(root,text="Use default image", command=lambda: Open_img(0,root,v.get())).pack()
+	v.set(1)
+	Label(root,text="Difficulty:").pack(anchor=W)
+	Radiobutton(root, text="Easy", variable=v, value=1).pack(anchor=W)
+	Radiobutton(root, text="Medium", variable=v, value=2).pack(anchor=W)
+	Radiobutton(root, text="Hard", variable=v, value=3).pack(anchor=W)
+	Button(root,text="Browse file", command=lambda: Open_img(1,root,s)).pack()
+	Button(root,text="Use default image", command=lambda: Open_img(0,root,s)).pack()
 	root.mainloop()
 
 
