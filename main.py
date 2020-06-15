@@ -46,6 +46,7 @@ def change_color(event):
 	if(v.get()==3):
 		clr.set(random.choice(colors))
 	cc=int(clr.get())
+	helper()
 
 def click(event):
 	x,y=event.x,event.y
@@ -166,6 +167,21 @@ def Open_img(i,root,s):
 			c+=1
 	white.save("blank.png")
 	game_start()
+
+def helper():
+	global size,pix,cc,picture,original,canvas,myimg
+	global hdns
+	img=Image.open("blank.png")
+	draw = ImageDraw.Draw(img,'RGBA')
+	print(cc)
+	for i in range(len(colors)):
+		if(cc==colors[i]):
+			a=round_down(i/hdns)*size
+			draw.rectangle(((hdns*a,a),(hdns*a+size,a+size)), (176, 176, 176, 70))
+					
+	img.save("blank.png")
+	picture = ImageTk.PhotoImage(img)
+	canvas.itemconfigure(myimg, image=picture)
 
 def start_window():
 	root=Tk()
