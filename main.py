@@ -41,26 +41,28 @@ def change_color(event):
 	global colors,cc,clr,len_color,v
 	if(min(colors)==len_color):
 		finish()
-	if(int(clr.get()) not in colors and v.get()!=3):
+	elif(int(clr.get()) not in colors and v.get()!=3):
 		clr.set(min(colors))
-	if(v.get()==3):
-		clr.set(random.choice(colors))
+	elif(v.get()==3):
+		r=(random.choice(colors))
+		while(r==len_color):
+			r=(random.choice(colors))
+		clr.set(r)
+
 	cc=int(clr.get())
-	helper()
 
 def click(event):
 	x,y=event.x,event.y
-	global size,pix,cc,picture,original,canvas,myimg
+	global size,pix,cc,picture,original,canvas,myimg,len_color
 	sx=round_down(x/size)*int(size)
 	sy=round_down(y/size)*int(size)
 	global hdns
 	index=round_down(y/size)*hdns+round_down(x/size)
 	img=Image.open("blank.png")
-	if(cc==colors[index]):
+	if(cc==colors[index] and colors[index]!=len_color):
 		for i in range(sx,sx+int(size)+1,1):
 			for j in range(sy,sy+int(size)+1,1):
 				original.putpixel((i,j),pix[index])
-		global len_color
 		pix[index],colors[index]=len_color,len_color
 		img.save("blank.png")
 		picture = ImageTk.PhotoImage(original)
@@ -146,9 +148,9 @@ def Open_img(i,root,s):
 	if(v.get()!=1):
 		d={}
 		for i in range(len(used_colors)):
-			r=random.randint(0,len_color)
+			r=random.randint(0,len_color-1)
 			while r in d.values():
-				r=random.randint(0,len_color)
+				r=random.randint(0,len_color-1)
 			d.update( {i : r} )
 
 		colors=([d.get(n, n) for n in colors])
@@ -167,21 +169,6 @@ def Open_img(i,root,s):
 			c+=1
 	white.save("blank.png")
 	game_start()
-
-def helper():
-	global size,pix,cc,picture,original,canvas,myimg
-	global hdns
-	img=Image.open("blank.png")
-	draw = ImageDraw.Draw(img,'RGBA')
-	print(cc)
-	for i in range(len(colors)):
-		if(cc==colors[i]):
-			a=round_down(i/hdns)*size
-			draw.rectangle(((hdns*a,a),(hdns*a+size,a+size)), (176, 176, 176, 70))
-					
-	img.save("blank.png")
-	picture = ImageTk.PhotoImage(img)
-	canvas.itemconfigure(myimg, image=picture)
 
 def start_window():
 	root=Tk()
