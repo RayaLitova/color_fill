@@ -4,6 +4,28 @@ from PIL import Image,ImageTk,ImageDraw,ImageFont
 import time
 import os
 import random
+import json
+from getmac import get_mac_address as gma
+
+default_best={"Mac":gma(),"Easy (8x8)": None, "Medium (8x8)": None, "Hard (8x8)": None, "Easy (16x16)": None, "Medium (16x16)": None, "Hard (16x16)": None}
+
+try: 
+	f=open("time.json","x")
+	f.write(json.dumps(default_best))
+	f.close()
+except:
+	bests=json.loads(open("time.json","r+").read())
+	if(gma()!=bests["Mac"]):
+		f.seek(0)
+		f.write(json.dumps(bests))
+
+f=open("time.json","r+")
+bests=json.loads(f.read())
+if(gma()!=bests["Mac"]):
+	f.seek(0)
+	f.write(json.dumps(default_best))
+f.close()
+keys=list(bests.keys())
 
 def round_down(num):
 	a=round(num)
@@ -20,10 +42,27 @@ def exit(root):
 	os.remove("blank.png")
 	os.remove("result.png")
 
+def save():
+	f=open("time.json",'w')
+	f.write(json.dumps(bests))
+	f.close()
+
 def finish():
 	global start
 	stop=time.perf_counter()
 	s=stop-start
+	global v,hdns
+	txt="Time: "
+	a=lambda v: {1: "Easy", 2: "Medium"}.get(v, "Hard")
+	if(bests[a(v.get())+" ({}x{})".format(hdns,hdns)]==None):
+		bests[a(v.get())+" ({}x{})".format(hdns,hdns)]=round(s)
+		save()
+		txt="New Best Time: "
+	if(bests[a(v.get())+" ({}x{})".format(hdns,hdns)]>s):
+		bests[a(v.get())+" ({}x{})".format(hdns,hdns)]=round(s)
+		save()
+		txt="New Best Time: "
+
 	m=0
 	if(s>60):
 		m=round_down(s/60)
@@ -31,7 +70,7 @@ def finish():
 	s=round(s)
 	global root, canvas,picture,myimg,start_picture
 	start_picture.resize((320,320))
-	Label(root, text="Time: "+str(m)+":"+str(s)).pack(anchor="ne")
+	Label(root, text=txt+str(m)+":"+str(s)).pack(anchor="ne")
 	picture = ImageTk.PhotoImage(start_picture)
 	canvas.itemconfigure(myimg, image=picture)
 	Button(root, text="Next", command=lambda: new_game(root)).pack()
@@ -83,7 +122,7 @@ def game_start():
 		e=Entry(root,textvariable=clr).pack(anchor=W)
 		Button(root,text="<Enter>", command=lambda: change_color(1)).pack(anchor=W)
 	else:
-		Label(root, textvariable=clr).pack(anchor=W)
+		Label(root, textvariable=clr,font=("Ariel",20)).pack(anchor=W)
 		Label(root,text="Press <Enter> to change color").pack(anchor=W)
 
 	root.bind('<Return>', change_color)
@@ -173,10 +212,14 @@ def Open_img(i,root,s):
 def start_window():
 	root=Tk()
 	root.title("Color fill by Raya")
-	root.geometry("300x350")
+	root.geometry("300x520")
 	img = ImageTk.PhotoImage(Image.open("logo.png"))
+	Label(root,text="").pack()
 	panel = Label(root, image = img)
 	panel.pack()
+	Label(root,text="\nBests: ",font=("Ariel", 15)).pack()
+	for i in range(len(keys)-1):
+		Label(root,text=str(keys[i+1])+": "+str(bests[keys[i+1]])+" sec").pack()
 	s=IntVar()
 	s.set(8)
 	Label(root,text="Tile size:").pack(anchor=W)
